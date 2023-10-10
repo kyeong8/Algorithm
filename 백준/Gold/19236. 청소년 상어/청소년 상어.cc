@@ -1,3 +1,11 @@
+/******************************************************************************
+
+							  Online C++ Compiler.
+			   Code, Compile, Run and Debug C++ program online.
+Write your code in this editor and press "Run" button to compile and execute it.
+
+*******************************************************************************/
+
 // dfs, back tracking
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -5,7 +13,7 @@
 
 using namespace std;
 
-struct Pos 
+struct Pos
 {
 	int row;
 	int col;
@@ -34,47 +42,33 @@ bool outofrange(int row, int col)
 	return true;
 }
 
-void dfs(int sum)
+void dfs(int sum, Pos fish[], Fish graph[][4])
 {
 	if (sum > answer)
-	{
 		answer = sum;
-
-		//cout << "answer: " << answer << "\n";
-		//for (int i = 0; i < 4; i++)
-		//{
-		//	for (int j = 0; j < 4; j++)
-		//	{
-		//		cout << graph[i][j].num << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-	}
 
 	Pos sharkMem = shark;
 	Fish fishMem;
 
-	Pos fishHis[17];
-	Fish mem[4][4];
-
+	Pos fishs[17];
+	Fish arr[4][4];
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
-			mem[i][j] = graph[i][j];
-			fishHis[4 * i + (j + 1)] = fish[4 * i + (j + 1)];
+			arr[i][j] = graph[i][j];
+			fishs[4 * i + (j + 1)] = fish[4 * i + (j + 1)];
 		}
 	}
 
 	for (int i = 1; i <= 16; i++)
 	{
-		if (fish[i].del)
+		if (fishs[i].del)
 			continue;
 
-		int row = fish[i].row;
-		int col = fish[i].col;
-		int direct = fish[i].direct;
+		int row = fishs[i].row;
+		int col = fishs[i].col;
+		int direct = fishs[i].direct;
 
 		for (int j = 0; j < 8; j++)
 		{
@@ -84,20 +78,20 @@ void dfs(int sum)
 
 			if (!outofrange(nrow, ncol) && (nrow != shark.row || ncol != shark.col))
 			{
-				if (graph[nrow][ncol].num == 0)
+				if (arr[nrow][ncol].num == 0)
 				{
-					fish[i] = { nrow, ncol, ndirect, false };
-					graph[row][col] = { 0, 0 };
-					graph[nrow][ncol] = { i, ndirect };
+					fishs[i] = { nrow, ncol, ndirect, false };
+					arr[row][col] = { 0, 0 };
+					arr[nrow][ncol] = { i, ndirect };
 				}
 				else
 				{
-					fishMem = graph[nrow][ncol];
+					fishMem = arr[nrow][ncol];
 
-					fish[i] = { nrow, ncol, ndirect, false };
-					graph[nrow][ncol] = { i, ndirect };
-					fish[fishMem.num] = { row, col, fishMem.direct, false };
-					graph[row][col] = fishMem;
+					fishs[i] = { nrow, ncol, ndirect, false };
+					arr[nrow][ncol] = { i, ndirect };
+					fishs[fishMem.num] = { row, col, fishMem.direct, false };
+					arr[row][col] = fishMem;
 				}
 
 				break;
@@ -110,29 +104,20 @@ void dfs(int sum)
 		int nrow = shark.row + i * dr[shark.direct];
 		int ncol = shark.col + i * dc[shark.direct];
 
-		if (!outofrange(nrow, ncol) && graph[nrow][ncol].num > 0)
+		if (!outofrange(nrow, ncol) && arr[nrow][ncol].num > 0)
 		{
-			fishMem = graph[nrow][ncol];
-			
-			shark = { nrow, ncol, fishMem.direct };
-			
-			fish[fishMem.num].del = true;
-			graph[nrow][ncol] = { 0, 0 };
+			fishMem = arr[nrow][ncol];
 
-			dfs(sum + fishMem.num);
+			shark = { nrow, ncol, fishMem.direct };
+
+			fishs[fishMem.num].del = true;
+			arr[nrow][ncol] = { 0, 0 };
+
+			dfs(sum + fishMem.num, fishs, arr);
 
 			shark = sharkMem;
-			fish[fishMem.num].del = false;
-			graph[nrow][ncol] = fishMem;
-		}
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			graph[i][j] = mem[i][j];
-			fish[4 * i + (j + 1)] = fishHis[4 * i + (j + 1)];
+			fishs[fishMem.num].del = false;
+			arr[nrow][ncol] = fishMem;
 		}
 	}
 }
@@ -163,7 +148,7 @@ int main()
 	fish[graph[0][0].num].del = true;
 	graph[0][0] = { 0, 0 };
 
-	dfs(sum);
+	dfs(sum, fish, graph);
 
 	//for (int i = 0; i < 4; i++)
 	//{
