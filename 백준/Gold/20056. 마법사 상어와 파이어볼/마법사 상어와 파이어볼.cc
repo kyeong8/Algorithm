@@ -18,7 +18,6 @@ int dc[] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 
 int N, M, K;
 vector<Fire> fire[51][51];
-vector<Fire> mem[51][51];
 
 pair<int, int> connect(int row, int col)
 {
@@ -72,7 +71,7 @@ void move()
 				{
 					mass += mem[i][j][mem[i][j].size() - 1].m;
 					speed += mem[i][j][mem[i][j].size() - 1].s;
-					if (mem[i][j][mem[i][j].size() - 1].d % 2 == 1)
+					if (mem[i][j][mem[i][j].size() - 1].d % 2 == 0)
 						++oddEven.first;
 					else
 						++oddEven.second;
@@ -92,8 +91,6 @@ void move()
 					for (; k < 8; k += 2)
 						mem[i][j].push_back(Fire{ mass, speed, k });
 				}
-				else
-					mem[i][j].clear();
 			}
 
 			//fire[i][j].clear();
@@ -120,18 +117,7 @@ int main()
 	}
 
 	for (int round = 1; round <= K; round++)
-	{
 		move();
-		//for (int i = 1; i <= N; i++)
-		//{
-		//	for (int j = 1; j <= N; j++)
-		//	{
-		//		cout << fire[i][j].size() << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-	}
 	
 	int answer = 0;
 
