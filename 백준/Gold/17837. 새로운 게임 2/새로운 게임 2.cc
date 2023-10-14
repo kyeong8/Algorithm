@@ -23,7 +23,7 @@ struct Player {
 
 int N, K;
 int arr[12][12];
-Player player[10];
+vector<Player> player;
 vector<int> here[12][12];
 
 int dr[] = { 0, 0, -1, 1 };
@@ -53,29 +53,14 @@ int main()
 			cin >> arr[i][j];
 		}
 	}
-	
+
 	int row, col, direct;
 	for (int i = 0; i < K; i++)
 	{
 		cin >> row >> col >> direct;
-		player[i] = { row - 1, col - 1, direct - 1 };
+		player.push_back(Player{ row - 1, col - 1, direct - 1 });
 		here[row - 1][col - 1].push_back(i);
 	}
-
-	//cout << "start\n";
-	//for (int num = 0; num < N; num++)
-	//{
-	//	for (int j = 0; j < N; j++)
-	//	{
-	//		cout << here[num][j].size() << " ";
-	//	}
-	//	cout << "\n";
-	//}
-	//cout << "\n";
-
-	//for (int num = 0; num < K; num++)
-	//	cout << "player[" << num + 1 << "].direct: " << player[num].direct << "\n";
-	//cout << "\n";
 
 
 	int round = 1;
@@ -90,7 +75,7 @@ int main()
 			int row = player[i].row;
 			int col = player[i].col;
 
-			// 업고 있는 애들 저장
+			// 자기 자신과 업고 있는 애들 저장
 			bool flag = false;
 			int size = here[row][col].size();
 			vector<int> high;
@@ -100,7 +85,10 @@ int main()
 					high.push_back(here[row][col][idx]);
 
 				if (here[row][col][idx] == i)
+				{
+					high.push_back(here[row][col][idx]);
 					flag = true;
+				}
 			}
 
 			// 아직 자기 자신과 업고 있는 애들은 기존 위치에 있음.
@@ -110,49 +98,41 @@ int main()
 
 			if (!outofrange(nrow, ncol) && arr[nrow][ncol] == 0)
 			{
-				// 움직일 위치에 넣는다.
-				here[nrow][ncol].push_back(i);
-					
-				// 업고 있던 애들 전부 옮긴다.
+				// 자기 자신과 업고 있던 애들 전부 옮긴다.
 				if (!high.empty())
 				{
 					for (auto h : high)
 						here[nrow][ncol].push_back(h);
 				}
-				
-				// 업고 있던 애들과 자기 자신을 이전 위치에서 빼낸다.
-				for (int j = 0; j <= (int)high.size(); j++)
+
+				// 자기 자신과 업고 있던 애들을 이전 위치에서 빼내고 바뀐 위치로 옮긴다.
+				for (int j = 0; j < (int)high.size(); j++)
 				{
-					int last = here[row][col].size() - 1;
-					int num = here[row][col][last];
+					int num = here[row][col].back();
+					here[row][col].pop_back();
 
 					player[num].row = nrow;
 					player[num].col = ncol;
-					here[row][col].pop_back();
 				}
 			}
 			else if (!outofrange(nrow, ncol) && arr[nrow][ncol] == 1)
 			{
-				// 업고 있는 애들이 있다면
+				// 자기 자신과 업고 있는 애들이 있다면
 				if (!high.empty())
 				{
-					// 업고 있던 애들의 순서를 반대로 바꾸고 전부 옮긴다.
+					// 업고 있던 애들의 순서를 반대로 바꾸고 전부 움직일 위치에 옮긴다.
 					reverse(high.begin(), high.end());
 					for (auto h : high)
 						here[nrow][ncol].push_back(h);
 				}
 
-				// 움직일 위치에 넣는다.
-				here[nrow][ncol].push_back(i);
-
-				for (int j = 0; j <= (int)high.size(); j++)
+				for (int j = 0; j < (int)high.size(); j++)
 				{
-					int last = here[row][col].size() - 1;
-					int num = here[row][col][last];
+					int num = here[row][col].back();
+					here[row][col].pop_back();
 
 					player[num].row = nrow;
 					player[num].col = ncol;
-					here[row][col].pop_back();
 				}
 			}
 			else if (arr[nrow][ncol] == 2 || outofrange(nrow, ncol))
@@ -173,78 +153,51 @@ int main()
 				// 방향을 반대로 바꾼 후에 이동하려는 칸이 파란색인 경우에는 이동하지 않고 가만히 있는다.
 				if (arr[nnrow][nncol] != 2 && !outofrange(nnrow, nncol))
 				{
+					// 다시 체스판 색깔에 따라 행동한다.
 					if (arr[nnrow][nncol] == 0)
 					{
-						here[nnrow][nncol].push_back(i);
-
-						// 업고 있던 애들 전부 옮긴다.
+						// 자기 자신과 업고 있던 애들 전부 옮긴다.
 						if (!high.empty())
 						{
 							for (auto h : high)
 								here[nnrow][nncol].push_back(h);
 						}
 
-						// 업고 있던 애들과 자기 자신을 이전 위치에서 빼낸다.
-						for (int j = 0; j <= (int)high.size(); j++)
+						// 자기 자신과 업고 있던 애들을 이전 위치에서 빼내고 바뀐 위치로 옮긴다.
+						for (int j = 0; j < (int)high.size(); j++)
 						{
-							int last = here[row][col].size() - 1;
-							int num = here[row][col][last];
+							int num = here[row][col].back();
+							here[row][col].pop_back();
 
 							player[num].row = nnrow;
 							player[num].col = nncol;
-							here[row][col].pop_back();
 						}
 					}
 					else if (arr[nnrow][nncol] == 1)
 					{
-						// 업고 있는 애들이 있다면
+						// 자기 자신과 업고 있는 애들이 있다면
 						if (!high.empty())
 						{
-							// 업고 있던 애들의 순서를 반대로 바꾸고 전부 옮긴다.
+							// 업고 있던 애들의 순서를 반대로 바꾸고 전부 움직일 위치에 옮긴다.
 							reverse(high.begin(), high.end());
 							for (auto h : high)
 								here[nnrow][nncol].push_back(h);
 						}
 
-						// 움직일 위치에 넣는다.
-						here[nnrow][nncol].push_back(i);
-
-						for (int j = 0; j <= (int)high.size(); j++)
+						for (int j = 0; j < (int)high.size(); j++)
 						{
-							int last = here[row][col].size() - 1;
-							int num = here[row][col][last];
+							int num = here[row][col].back();
+							here[row][col].pop_back();
 
 							player[num].row = nnrow;
 							player[num].col = nncol;
-							here[row][col].pop_back();
 						}
 					}
 				}
 			}
 
-			//cout << "i: " << i + 1 << "\n";
-
-			//for (int num = 0; num < N; num++)
-			//{
-			//	for (int j = 0; j < N; j++)
-			//	{
-			//		cout << here[num][j].size() << " ";
-			//	}
-			//	cout << "\n";
-			//}
-			//cout << "\n";
-
-			//for (int num = 0; num < K; num++)
-			//	cout << "player[" << num + 1 << "].row: " << player[num].row + 1 << " player[" << num + 1 << "].col: " << player[num].col + 1 << "\n";
-			//cout << "\n";
-
-			//for (int num = 0; num < K; num++)
-			//	cout << "player[" << num + 1 << "].direct: " << player[num].direct << "\n";
-			//cout << "\n";
-
-
 			// 종료 조건:  턴이 진행되던 중에 말이 4개 이상 쌓이는 순간
-			
+
 			if (here[player[i].row][player[i].col].size() >= 4)
 			{
 				exit = true;
@@ -254,26 +207,6 @@ int main()
 
 		if (exit)
 			break;
-
-		//cout << "round: " << round << "\n";
-
-		//for (int num = 0; num < N; num++)
-		//{
-		//	for (int j = 0; j < N; j++)
-		//	{
-		//		cout << here[num][j].size() << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-
-		//for (int num = 0; num < K; num++)
-		//	cout << "player[" << num + 1 << "].row: " << player[num].row << " player[" << num + 1 << "].col: " << player[num].col << "\n";
-		//cout << "\n";
-
-		//for (int num = 0; num < K; num++)
-		//	cout << "player[" << num + 1 << "].direct: " << player[num].direct << "\n";
-		//cout << "\n";
 
 		++round;
 	}
