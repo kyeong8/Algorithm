@@ -1,105 +1,172 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
-#include <map>
-#include <vector>
-#include <algorithm>
 
 using namespace std;
 
-struct Shark {
-	int s;
-	int d;
-	int z;
+struct Pos {
+	int row;
+	int col;
+
+	bool operator <(const Pos& var) const
+	{
+		if (row != var.row) return row < var.row;
+		return col < var.col;
+	}
 };
 
-// start: 4, <-, ->, 1 ~ 6
-// 방향을 보고 왼쪽이면 length - (pos - 1), (pos - 1)만큼 shift
-// 오른쪽이면 length - (6 - pos), (6 - pos)만큼 shift
-// pos- 1 or 6 - pos가 legnth보다 크다?
-// 왼쪽은 pos - legnth, 오른쪽은 length - pos
-// 3 2 1 2 3 4 5 6 5  4  3  2  1  2  3  4  5  6
-// 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+struct Info {
+	int speed;
+	int direct;
+	int size;
+};
 
+int dr[] = { 0, 1, -1, 0, 0 };
+int dc[] = { 0, 0, 0, 1, -1 };
+
+Info arr[101][101] = { 0, };
 int R, C, M;
-Shark arr[102][102];
-int hunter = 0;
-int answer = 0;
 
-//// 위 아래 오른쪽 왼쪽
-//int dr[] = { -1, 1, 0, 0 };
-//int dc[] = { 0, 0, 1, -1 };
-
-int change(int direct)
+pair<Pos, Info> move(int row, int col, int speed, int direct, int size)
 {
+	int curRow = row;
+	int curCol = col;
+	int curDirect = direct;
+	int curSpeed = speed;
+	// 상
 	if (direct == 1)
-		return 2;
+	{
+		int rest = (row - 1);
+
+		if (rest < curSpeed)
+		{
+			curSpeed -= rest;
+			curRow = 1;
+		}
+		else
+			return make_pair(Pos{ curRow - curSpeed, col }, Info{ speed, direct, size });
+
+		int a = curSpeed / (R - 1);
+		int b = curSpeed % (R - 1);
+
+		// 홀수 - 방향 안 바뀜
+		if (a % 2 == 1)
+			return make_pair(Pos{ R - b, col }, Info{ speed, direct, size });
+		// 짝수 - 방향 바뀜
+		else
+			return make_pair(Pos{ curRow + b, col }, Info{ speed, direct + 1, size });
+	}
+	// 하
 	else if (direct == 2)
-		return 1;
+	{
+		int rest = (R - row);
+
+		if (rest < curSpeed)
+		{
+			curSpeed -= rest;
+			curRow = R;
+		}
+		else
+			return make_pair(Pos{ curRow + curSpeed, col }, Info{ speed, direct, size });
+
+		int a = curSpeed / (R - 1);
+		int b = curSpeed % (R - 1);
+
+		// 홀수 - 방향 안 바뀜
+		if (a % 2 == 1)
+			return make_pair(Pos{ 1 + b, col }, Info{ speed, direct, size });
+		// 짝수 - 방향 바뀜
+		else
+			return make_pair(Pos{ curRow - b, col }, Info{ speed, direct - 1, size });
+	}
+	// 우
 	else if (direct == 3)
-		return 4;
+	{
+		int rest = (C - col);
+
+		if (rest < curSpeed)
+		{
+			curSpeed -= rest;
+			curCol = C;
+		}
+		else
+			return make_pair(Pos{ row, curCol + curSpeed }, Info{ speed, direct, size });
+
+		int a = curSpeed / (C - 1);
+		int b = curSpeed % (C - 1);
+
+		// 홀수 - 방향 안 바뀜
+		if (a % 2 == 1)
+			return make_pair(Pos{ row, 1 + b }, Info{ speed, direct, size });
+		// 짝수 - 방향 바뀜
+		else
+			return make_pair(Pos{ row, curCol - b }, Info{ speed, direct + 1, size });
+	}
+	// 좌
 	else if (direct == 4)
-		return 3;
+	{
+		int rest = (col - 1);
+
+		if (rest < curSpeed)
+		{
+			curSpeed -= rest;
+			curCol = 1;
+		}
+		else
+			return make_pair(Pos{ row, curCol - curSpeed }, Info{ speed, direct, size });
+
+		int a = curSpeed / (C - 1);
+		int b = curSpeed % (C - 1);
+
+		// 홀수 - 방향 안 바뀜
+		if (a % 2 == 1)
+			return make_pair(Pos{ row, C - b }, Info{ speed, direct, size });
+		// 짝수 - 방향 바뀜
+		else
+			return make_pair(Pos{ row, curCol + b }, Info{ speed, direct - 1, size });
+	}
 }
 
-int main()
-{
+int main() {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
 
+
 	cin >> R >> C >> M;
-
-	for (int i = 1; i <= R; i++)
-	{
-		for (int j = 1; j <= C; j++)
-		{
-			arr[i][j] = { 0, 0, 0 };
-		}
-	}
-
 	int r, c, s, d, z;
 	for (int i = 0; i < M; i++)
 	{
 		cin >> r >> c >> s >> d >> z;
-		arr[r][c] = { s, d, z };
+		arr[r][c] = Info{ s, d, z };
 	}
 
-	//for (int i = 1; i <= R; i++)
-	//{
-	//	for (int j = 1; j <= C; j++)
-	//	{
-	//		cout << arr[i][j].d << " ";
-	//	}
-	//	cout << "\n";
-	//}
-	//cout << "\n";
-
-	while (true)
+	/*for (int i = 1; i <= R; i++)
 	{
-		// 낚시왕이 오른쪽으로 한 칸 이동한다.
-		++hunter;
+		for (int j = 1; j <= C; j++)
+		{
+			cout << arr[i][j].size << " ";
+		}
+		cout << "\n";
+	}
+	cout << "\n";*/
 
-		//cout << "hunter: " << hunter << "\n";
-		// 낚시왕이 격자 밖으로 나가면 종료
-		if (hunter > C)
-			break;
-
-		// 낚시왕이 있는 열에 있는 상어 중에서 땅과 제일 가까운 상어를 잡는다
+	int answer = 0;
+	// 1. 낚시왕이 오른쪽으로 한 칸 이동한다.
+	for (int time = 1; time <= C; time++)
+	{
+		// 2. 낚시왕이 있는 열에 있는 상어 중에서 땅과 제일 가까운 상어를 잡는다. 상어를 잡으면 격자판에서 잡은 상어가 사라진다.
 		for (int i = 1; i <= R; i++)
 		{
-			// 격자판에서 잡은 상어가 사라진다.
-			if (arr[i][hunter].z != 0)
+			if (arr[i][time].size != 0)
 			{
-				answer += arr[i][hunter].z;
-				arr[i][hunter] = { 0, 0, 0 };
+				answer += arr[i][time].size;
+				arr[i][time] = { 0, 0, 0 };
 				break;
 			}
 		}
 
-		// 상어가 이동한다.
-		Shark mem[102][102];
+		Info mem[102][102];
 		for (int i = 1; i <= R; i++)
 		{
 			for (int j = 1; j <= C; j++)
@@ -112,103 +179,25 @@ int main()
 		{
 			for (int j = 1; j <= C; j++)
 			{
-				if (arr[i][j].z == 0)
+				if (arr[i][j].size == 0)
 					continue;
 
 				int row = i;
 				int col = j;
-				int direct = arr[i][j].d;
-				int speed = arr[i][j].s;
-				int size = arr[i][j].z;
+				int direct = arr[i][j].direct;
+				int speed = arr[i][j].speed;
+				int size = arr[i][j].size;
 
+				pair<Pos, Info> ret;
+				ret = move(row, col, speed, direct, size);
 
-				int nrow, ncol;
-				// 왼쪽 오른쪽
-				if (direct > 2)
+				if (mem[ret.first.row][ret.first.col].size != 0)
 				{
-					nrow = row, ncol = col;
-					while (true)
-					{
-						//cout << "Speed: " << speed << "\n";
-						//cout << "ncol: " << ncol << "\n";
-						//cout << "direct: " << direct << "\n";
-
-						if (direct == 4 && speed > ncol - 1)
-						{
-							speed -= ncol - 1;
-							direct = change(direct);
-							ncol = 1;
-						}
-						else if (direct == 3 && speed > C - ncol)
-						{
-							speed -= C - ncol;
-							direct = change(direct);
-							ncol = C;
-						}
-						else if (direct == 4 && speed <= ncol - 1)
-						{
-							ncol -= speed;
-							speed = 0;
-						}
-						else if (direct == 3 && speed <= C - ncol)
-						{
-							ncol += speed;
-							speed = 0;
-						}
-
-						if (speed == 0)
-							break;
-					}
-					//cout << "destination: " << ncol << "\n\n";
-				}
-				// 위 아래
-				else if (direct <= 2)
-				{
-					nrow = row, ncol = col;
-					while (true)
-					{
-						//cout << "Speed: " << speed << "\n";
-						//cout << "ncol: " << ncol << "\n";
-						//cout << "direct: " << direct << "\n";
-
-						if (direct == 1 && speed > nrow - 1)
-						{
-							speed -= nrow - 1;
-							direct = change(direct);
-							nrow = 1;
-						}
-						else if (direct == 2 && speed > R - nrow)
-						{
-							speed -= R - nrow;
-							direct = change(direct);
-							nrow = R;
-						}
-						else if (direct == 1 && speed <= nrow - 1)
-						{
-							nrow -= speed;
-							speed = 0;
-						}
-						else if (direct == 2 && speed <= R - nrow)
-						{
-							nrow += speed;
-							speed = 0;
-						}
-
-						if (speed == 0)
-							break;
-					}
-					//cout << "destination: " << ncol << "\n\n";
-				}
-
-				if (mem[nrow][ncol].z != 0)
-				{
-					int compareSize = mem[nrow][ncol].z;
-
-					if (size > compareSize)
-						mem[nrow][ncol] = Shark{ arr[i][j].s, direct, size };
+					if (size > mem[ret.first.row][ret.first.col].size)
+						mem[ret.first.row][ret.first.col] = Info { speed, ret.second.direct, size };
 				}
 				else
-					mem[nrow][ncol] = Shark{ arr[i][j].s, direct, size };
+					mem[ret.first.row][ret.first.col] = Info{ speed, ret.second.direct, size };
 			}
 		}
 
@@ -220,16 +209,19 @@ int main()
 			}
 		}
 
-		//for (int i = 1; i <= R; i++)
-		//{
-		//	for (int j = 1; j <= C; j++)
-		//	{
-		//		cout << arr[i][j].d << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-		
+		/*for (int i = 1; i <= R; i++)
+		{
+			for (int j = 1; j <= C; j++)
+			{
+				cout << arr[i][j].size << " ";
+			}
+			cout << "\n";
+		}
+		cout << "\n";
+
+		for (auto sh : shark)
+			cout << "row: " << sh.first.row << " col: " << sh.first.col << " direct: " << sh.second.direct << " speed: " << sh.second.speed  << " size:" << sh.second.size << "\n";
+		cout << "\n";*/
 	}
 
 	cout << answer << "\n";
