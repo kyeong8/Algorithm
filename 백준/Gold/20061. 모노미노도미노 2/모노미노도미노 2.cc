@@ -1,231 +1,227 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
-#include <cstring>
 
 using namespace std;
 
 int N;
-bool blue[6][4];
-bool green[6][4];
-int blueCnt[6] = { 0 };
-int greenCnt[6] = { 0 };
-int blueDestroy = 0;
-int greenDestroy = 0;
+int point = 0;
 
-void blueMove(int type, int row, int col)
+//bool red[4][4] = { false };
+bool blue[4][6] = { false };
+bool green[6][4] = { false };
+
+bool block(int type, int row, int col)
 {
-	// 1x1
-	int curRow, curCol;
-	
-	if (type == 1)
+	if (type == 0)
 	{
-		curRow = -1;
-		curCol = row;
+		if (col > 5 || blue[row][col])
+			return true;
+		return false;
+	}
+	else if (type == 1)
+	{
+		if (row > 5 || green[row][col])
+			return true;
+		return false;
+	}
+}
+
+void shift(int t, int x, int y)
+{
+	if (t == 1)
+	{
+		int brow = x;
+		int bcol = 0;
+
 		while (true)
 		{
-			++curRow;
-
-			if (curRow >= 5 || blue[curRow + 1][curCol])
-			{
-				blue[curRow][curCol] = true;
-				blueCnt[curRow] += 1;
+			if (block(0, brow, bcol + 1))
 				break;
-			}
+			bcol++;
 		}
-	}
-	else if (type == 2)
-	{
-		curRow = -1;
-		curCol = row;
+		blue[brow][bcol] = true;
+
+		int grow = 0;
+		int gcol = y;
+
 		while (true)
 		{
-			++curRow;
-			if (curRow >= 5 || blue[curRow + 1][curCol])
-			{
-				blue[curRow][curCol] = true;
-				blue[curRow - 1][curCol] = true;
-				blueCnt[curRow] += 1;
-				blueCnt[curRow - 1] += 1;
+			if (block(1, grow + 1, gcol))
 				break;
-			}
+			grow++;
 		}
+		green[grow][gcol] = true;
 	}
-	else if (type == 3)
+	else if (t == 2)
 	{
-		curRow = -1;
-		curCol = row;
+		int brow = x;
+		int bcol = 0;
+
 		while (true)
 		{
-			++curRow;
-
-			if (curRow >= 5 || blue[curRow + 1][curCol] || blue[curRow + 1][curCol + 1])
-			{
-				blue[curRow][curCol] = true;
-				blue[curRow][curCol + 1] = true;
-				blueCnt[curRow] += 2;
+			if (block(0, brow, bcol + 1))
 				break;
+			bcol++;
+		}
+		blue[brow][bcol] = true;
+		blue[brow][bcol - 1] = true;
+
+		int grow = 0;
+		int gcol = y;
+
+		while (true)
+		{
+			if (block(1, grow + 1, gcol) || block(1, grow + 1, gcol + 1))
+				break;
+			grow++;
+		}
+		green[grow][gcol] = true;
+		green[grow][gcol + 1] = true;
+	}
+	else if (t == 3)
+	{
+		int brow = x;
+		int bcol = 0;
+
+		while (true)
+		{
+			if (block(0, brow, bcol + 1) || block(0, brow + 1, bcol + 1))
+				break;
+			bcol++;
+		}
+		blue[brow][bcol] = true;
+		blue[brow + 1][bcol] = true;
+
+		int grow = 0;
+		int gcol = y;
+
+		while (true)
+		{
+			if (block(1, grow + 1, gcol))
+				break;
+			grow++;
+		}
+		green[grow][gcol] = true;
+		green[grow - 1][gcol] = true;
+	}
+}
+
+void gravity(int type, int index)
+{
+	if (type == 0)
+	{
+		for (int j = index - 1; j >= 0; j--)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				blue[i][j + 1] = blue[i][j];
+				blue[i][j] = false;
 			}
 		}
 	}
-
-	for (int i = 2; i < 6; i++)
+	else if (type == 1)
 	{
-		if (blueCnt[i] == 4)
+		for (int i = index - 1; i >= 0; i--)
 		{
-			++blueDestroy;
-			blueCnt[i] = 0;
-			memset(blue[i], false, sizeof(blue[i]));
-
-			for (int j = i - 1; j >= 0; j--)
+			for (int j = 0; j < 4; j++)
 			{
-				for (int k = 0; k < 4; k++)
-				{
-					bool temp = blue[j + 1][k];
-					blue[j + 1][k] = blue[j][k];
-					blue[j][k] = temp;
-				}
-
-				int cnt = blueCnt[j + 1];
-				blueCnt[j + 1] = blueCnt[j];
-				blueCnt[j] = cnt;
-			}
-		}
-	}
-
-	for (int i = 0; i < 2; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			if (blue[i][j])
-			{
-				blueCnt[5] = 0;
-				memset(blue[5], false, sizeof(blue[5]));
-
-				for (int j = 4; j >= i; j--)
-				{
-					for (int k = 0; k < 4; k++)
-					{
-						bool temp = blue[j + 1][k];
-						blue[j + 1][k] = blue[j][k];
-						blue[j][k] = temp;
-					}
-
-					int cnt = blueCnt[j + 1];
-					blueCnt[j + 1] = blueCnt[j];
-					blueCnt[j] = cnt;
-				}
-				break;
+				green[i + 1][j] = green[i][j];
+				green[i][j] = false;
 			}
 		}
 	}
 }
 
-void greenMove(int type, int row, int col)
+void calPoint()
 {
-	// 1x1
-	int curRow, curCol;
-	if (type == 1)
+	for (int j = 2; j < 6; j++)
 	{
-		curRow = -1;
-		curCol = col;
-
-		while (true)
+		int cnt = 0;
+		for (int i = 0; i < 4; i++)
 		{
-			++curRow;
-			if (curRow >= 5 || green[curRow + 1][curCol])
-			{
-				green[curRow][curCol] = true;
-				greenCnt[curRow] += 1;
-				break;
-			}
+			if (blue[i][j])
+				cnt++;
 		}
-	}
-	else if (type == 2)
-	{
-		curRow = -1;
-		curCol = col;
+		if (cnt == 4)
+		{
+			for (int i = 0; i < 4; i++)
+				blue[i][j] = false;
+			point++;
 
-		while (true)
-		{
-			++curRow;
-			if (curRow >= 5 || green[curRow + 1][curCol] || green[curRow + 1][curCol + 1])
-			{
-				green[curRow][curCol] = true;
-				green[curRow][curCol + 1] = true;
-				greenCnt[curRow] += 2;
-				break;
-			}
-		}
-	}
-	else if (type == 3)
-	{
-		curRow = -1;
-		curCol = col;
-		while (true)
-		{
-			++curRow;
-			if (curRow >= 5 || green[curRow + 1][curCol])
-			{
-				green[curRow][curCol] = true;
-				green[curRow - 1][curCol] = true;
-				greenCnt[curRow] += 1;
-				greenCnt[curRow - 1] += 1;
-				break;
-			}
+			gravity(0, j);
 		}
 	}
 
 	for (int i = 2; i < 6; i++)
 	{
-		if (greenCnt[i] == 4)
+		int cnt = 0;
+		for (int j = 0; j < 4; j++)
 		{
-			++greenDestroy;
-			greenCnt[i] = 0;
-			memset(green[i], false, sizeof(green[i]));
+			if (green[i][j])
+				cnt++;
+		}
+		if (cnt == 4)
+		{
+			for (int j = 0; j < 4; j++)
+				green[i][j] = false;
+			point++;
 
-			for (int j = i - 1; j >= 0; j--)
+			gravity(1, i);
+		}
+	}
+}
+
+void softLine()
+{
+	int bcnt = 0;
+	for (int j = 0; j < 2; j++)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (blue[i][j])
 			{
-				for (int k = 0; k < 4; k++)
-				{
-					bool temp = green[j + 1][k];
-					green[j + 1][k] = green[j][k];
-					green[j][k] = temp;
-				}
-
-				int cnt = greenCnt[j + 1];
-				greenCnt[j + 1] = greenCnt[j];
-				greenCnt[j] = cnt;
+				bcnt++;
+				break;
 			}
 		}
 	}
 
+	for (int j = 5; j > 5 - bcnt; j--)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			blue[i][j] = false;
+		}
+	}
+
+	for (int i = 0; i < bcnt; i++)
+		gravity(0, 5);
+
+	int gcnt = 0;
 	for (int i = 0; i < 2; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
 			if (green[i][j])
 			{
-				greenCnt[5] = 0;
-				memset(green[5], false, sizeof(green[5]));
-
-				for (int j = 4; j >= i; j--)
-				{
-					for (int k = 0; k < 4; k++)
-					{
-						bool temp = green[j + 1][k];
-						green[j + 1][k] = green[j][k];
-						green[j][k] = temp;
-					}
-
-					int cnt = greenCnt[j + 1];
-					greenCnt[j + 1] = greenCnt[j];
-					greenCnt[j] = cnt;
-				}
+				gcnt++;
 				break;
 			}
 		}
 	}
+
+	for (int i = 5; i > 5 - gcnt; i--)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			green[i][j] = false;
+		}
+	}
+
+	for (int i = 0; i < gcnt; i++)
+		gravity(1, 5);
 }
+
+
 
 int main()
 {
@@ -236,57 +232,62 @@ int main()
 	//freopen("input.txt", "r", stdin);
 
 	cin >> N;
+
 	int t, x, y;
-	for (int round = 1; round <= N; round++)
+
+	for (int i = 0; i < N; i++)
 	{
+		int ret;
+		int bcnt = 0, gcnt = 0;
 		cin >> t >> x >> y;
-		greenMove(t, x, y);
-		blueMove(t, x, y);
+
+		shift(t, x, y);
+
+		calPoint();
+
+		softLine();
+
+		/*cout << "---------- blue ----------\n";
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 2; j < 6; j++)
+			{
+				if (blue[i][j])
+					cout << "O ";
+				else
+					cout << "X ";
+			}
+			cout << "\n";
+		}
+		cout << "\n";
+
+		cout << "---------- green ----------\n";
+		for (int i = 2; i < 6; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				if (green[i][j])
+					cout << "O ";
+				else
+					cout << "X ";
+			}
+			cout << "\n";
+		}
+		cout << "\n";*/
 	}
 
-	//cout << "blue\n";
-	//for (int i = 0; i < 6; i++)
-	//{
-	//	for (int j = 3; j >= 0; j--)
-	//	{
-	//		cout << blue[i][j] << " ";
-	//	}
-	//	cout << "\n";
-	//}
-	//cout << "\n";
-
-	//for (int i = 2; i < 6; i++)
-	//{
-	//	cout << blueCnt[i] << "\n";
-	//}
-	//cout << "\n";
-
-	//cout << "green\n";
-	//for (int i = 0; i < 6; i++)
-	//{
-	//	for (int j = 0; j < 4; j++)
-	//	{
-	//		cout << green[i][j] << " ";
-	//	}
-	//	cout << "\n";
-	//}
-	//cout << "\n";
-
-	//for (int i = 2; i < 6; i++)
-	//{
-	//	cout << greenCnt[i] << "\n";
-	//}
-	//cout << "\n";
-
-	cout << blueDestroy + greenDestroy << "\n";
 	int cnt = 0;
-	for (int i = 0; i < 6; i++)
+	for (int i = 2; i < 6; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
-			cnt += blue[i][j];
-			cnt += green[i][j];
+			if (green[i][j])
+				cnt++;
+			if (blue[j][i])
+				cnt++;
 		}
 	}
+
+	cout << point << "\n";
 	cout << cnt << "\n";
 }
