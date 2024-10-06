@@ -1,143 +1,128 @@
-// 방향에 따라 달라지는 모래의 분포
-// 격자 밖으로 나간 모래를 저장
-// 달팽이 모양 이동
-
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 
 using namespace std;
 
-int N;
-int graph[500][500];
-int out;
-
-// 좌 하 우 상
 int dr[] = { 0, 1, 0, -1 };
 int dc[] = { -1, 0, 1, 0 };
 
-bool outofrange(int row, int col)
+int arr[500][500] = { 0 };
+int answer = 0;
+int N;
+
+bool inofrange(int row, int col)
 {
 	if (1 <= row && row <= N && 1 <= col && col <= N)
-		return false;
-	return true;
+		return true;
+	return false;
 }
 
-void spread(int row, int col, int dir)
+void spread(int row, int col, int direct)
 {
-	int y = graph[row][col];
-	graph[row][col] = 0;
-	int alpha = 0;
+	int oriSand = arr[row][col];
 
-	/////////////////
-    ////// 위 ///////
-    /////////////////
-	int temp = (dir + 1) % 4;
-	int nrow = row + dr[temp];
-	int ncol = col + dc[temp];
+	int sum = 0;
+	int nrow, ncol, cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.07);
+	// 직진 방향
+	nrow = row + 2 * dr[direct];
+	ncol = col + 2 * dc[direct];
+	cSand = oriSand * 0.05;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.07);
-	alpha += (int)(y * 0.07);
+		arr[nrow][ncol] += cSand;
 
-	/////////////////
-	nrow = nrow + dr[dir];
-	ncol = ncol + dc[dir];
-
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.1);
+	// 왼쪽
+	nrow = row + dr[(direct + 1) % 4];
+	ncol = col + dc[(direct + 1) % 4];
+	cSand = oriSand * 0.07;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.1);
-	alpha += (int)(y * 0.1);
-	
-	/////////////////
-	nrow = nrow - 2 * dr[dir];
-	ncol = ncol - 2 * dc[dir];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.01);
+	nrow = row + 2 * dr[(direct + 1) % 4];
+	ncol = col + 2 * dc[(direct + 1) % 4];
+	cSand = oriSand * 0.02;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.01);
-	alpha += (int)(y * 0.01);
-	
-	/////////////////
-	nrow = row + 2 * dr[temp];
-	ncol = col + 2 * dc[temp];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.02);
+	nrow = row + dr[direct];
+	ncol = col + dc[direct];
+	nrow = nrow + dr[(direct + 1) % 4];
+	ncol = ncol + dc[(direct + 1) % 4];
+	cSand = oriSand * 0.1;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.02);
-	alpha += (int)(y * 0.02);
+		arr[nrow][ncol] += cSand;
 
-	/////////////////
-	////// 아래 /////
-	/////////////////
-	if (dir == 0)
-		temp = 3;
+	nrow = row - dr[direct];
+	ncol = col - dc[direct];
+	nrow = nrow + dr[(direct + 1) % 4];
+	ncol = ncol + dc[(direct + 1) % 4];
+	cSand = oriSand * 0.01;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		temp = (dir - 1) % 4;
-	nrow = row + dr[temp];
-	ncol = col + dc[temp];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.07);
+	// 오른쪽
+	nrow = row + dr[(direct + 3) % 4];
+	ncol = col + dc[(direct + 3) % 4];
+	cSand = oriSand * 0.07;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.07);
-	alpha += (int)(y * 0.07);
-	
-	/////////////////
-	nrow = nrow + dr[dir];
-	ncol = ncol + dc[dir];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.1);
+	nrow = row + 2 * dr[(direct + 3) % 4];
+	ncol = col + 2 * dc[(direct + 3) % 4];
+	cSand = oriSand * 0.02;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.1);
-	alpha += (int)(y * 0.1);
-	
-	/////////////////
-	nrow = nrow - 2 * dr[dir];
-	ncol = ncol - 2 * dc[dir];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.01);
+	nrow = row + dr[direct];
+	ncol = col + dc[direct];
+	nrow = nrow + dr[(direct + 3) % 4];
+	ncol = ncol + dc[(direct + 3) % 4];
+	cSand = oriSand * 0.1;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.01);
-	alpha += (int)(y * 0.01);
-	
-	/////////////////
-	nrow = row + 2 * dr[temp];
-	ncol = col + 2 * dc[temp];
+		arr[nrow][ncol] += cSand;
 
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.02);
+	nrow = row - dr[direct];
+	ncol = col - dc[direct];
+	nrow = nrow + dr[(direct + 3) % 4];
+	ncol = ncol + dc[(direct + 3) % 4];
+	cSand = oriSand * 0.01;
+	sum += cSand;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.02);
-	alpha += (int)(y * 0.02);
-	
-	/////////////////
-	//// 진행방향 ////
-	/////////////////
+		arr[nrow][ncol] += cSand;
 
-	nrow = row + 2 * dr[dir];
-	ncol = col + 2 * dc[dir];
-
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (int)(y * 0.05);
+	// alpha
+	nrow = row + dr[direct];
+	ncol = col + dc[direct];
+	cSand = oriSand - sum;
+	if (!inofrange(nrow, ncol))
+		answer += cSand;
 	else
-		out += (int)(y * 0.05);
-	alpha += (int)(y * 0.05);
-	
-	//////////////
-	nrow = row + dr[dir];
-	ncol = col + dc[dir];
-
-	if (!outofrange(nrow, ncol))
-		graph[nrow][ncol] += (y - alpha);
-	else
-		out += (y - alpha);
+		arr[nrow][ncol] += cSand;
 }
 
 int main()
@@ -148,63 +133,48 @@ int main()
 
 	//freopen("input.txt", "r", stdin);
 
-	out = 0;
 	cin >> N;
-	
-	for (int i = 1; i <= N; i++)
-	{
-		for (int j = 1; j <= N; j++)
-		{
-			cin >> graph[i][j];
-		}
-	}
 
-	int row = N / 2 + 1;
-	int col = row;
-	int dir = 0;
-	int length = 1;
-	int rest = length;
-	int iter = 2;
-	int distance = N * N - 1;
+	for (int i = 1; i <= N; i++)
+		for (int j = 1; j <= N; j++)
+			cin >> arr[i][j];
+
+	pair<int, int> start;
+	start.first = N / 2 + 1;
+	start.second = N / 2 + 1;
+	int direct = 0;
+	int cnt = 0;
+	int len = 1;
 
 	while (true)
 	{
-		if (distance == 0)
-			break;
-		--distance;
+		bool flag = false;
 
-		int nrow = row + dr[dir];
-		int ncol = col + dc[dir];
-		row = nrow;
-		col = ncol;
-		
-		spread(row, col, dir);
-
-		//cout << "round: " << N * N - distance << "\n";
-		//for (int i = 1; i <= N; i++)
-		//{
-		//	for (int j = 1; j <= N; j++)
-		//	{
-		//		cout << graph[i][j] << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-		
-		--rest;
-		if (rest == 0)
+		for (int i = 0; i < len; i++)
 		{
-			dir = (dir + 1) % 4;
+			start.first = start.first + dr[direct];
+			start.second = start.second + dc[direct];
+			spread(start.first, start.second, direct);
 
-			--iter;
-			if (iter == 0)
+			//cout << "row: " << start.first << " col: " << start.second << " len: " << len << "\n";
+			if (start.first == 1 && start.second == 1)
 			{
-				++length;
-				iter = 2;
+				flag = true;
+				break;
 			}
-			rest = length;
+		}
+		if (flag)
+			break;
+
+		cnt++;
+		direct = (direct + 1) % 4;
+
+		if (cnt == 2)
+		{
+			cnt = 0;
+			len++;
 		}
 	}
 
-	cout << out << "\n";
+	cout << answer << "\n";
 }
