@@ -1,6 +1,3 @@
-// 우선순위 계산과 최단거리 이동 및 연료 계산
-
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <queue>
 
@@ -11,138 +8,138 @@ struct Pos {
 	int col;
 };
 
-struct Need {
-	int row;
-	int col;
-	int distance;
-};
-
-Pos taxi;
 int N, M, fuel;
-int start[20][20];
-Pos des[400];
-bool wall[20][20];
+int arr[21][21] = { 0 };
+Pos driver;
+int pas[21][21] = { 0 };
+Pos des[401];
 
-// 상 하 좌 우
 int dr[] = { -1, 1, 0, 0 };
 int dc[] = { 0, 0, -1, 1 };
 
-bool outofrange(int row, int col)
+bool check(int row, int col)
 {
-	if (0 <= row && row < N && 0 <= col && col < N)
-		return false;
-	return true;
+	if (1 <= row && row <= N && 1 <= col && col <= N && arr[row][col] == 0)
+		return true;
+	return false;
 }
 
-struct cmp {
-	bool operator() (Need a, Need b)
-	{
-		if (a.distance == b.distance)
-		{
-			if (a.row == b.row)
-				return a.col > b.col;
-			return a.row > b.row;
-		}
-		return a.distance > b.distance;
-	}
-};
-
-void Take(int round)
+// 못 찾으면 -1, 가는 길에 연료가 고갈되어도 -1
+// 찾으면 번호
+int findPas()
 {
-	priority_queue<Need, vector<Need>, cmp> pq;
-
-	// 시작위치에 손님이 있을 때 고려해야함
-	if (start[taxi.row][taxi.col] > 0)
-		pq.push(Need{ taxi.row, taxi.col, 0 });
-
-	bool visited[20][20] = { false };
-	queue<pair<Pos, int>> q;
-	visited[taxi.row][taxi.col] = true;
-	q.push(make_pair(taxi, 0));
+	bool visited[21][21] = { false };
+	int first = 401;
+	deque<Pos> mem;
+	deque<pair<Pos, int>> q;
+	visited[driver.row][driver.col] = true;
+	q.push_back(make_pair(Pos{ driver.row, driver.col }, 0));
 
 	while (!q.empty())
 	{
 		int row = q.front().first.row;
 		int col = q.front().first.col;
 		int dis = q.front().second;
-		q.pop();
+		q.pop_front();
+
+		if (pas[row][col] > 0)
+		{
+			if (first >= dis)
+				first = dis;
+			else
+				break;
+
+			mem.push_back(Pos{ row, col });
+		}
 
 		for (int i = 0; i < 4; i++)
 		{
 			int nrow = row + dr[i];
 			int ncol = col + dc[i];
 
-			if (!outofrange(nrow, ncol) && !visited[nrow][ncol] && !wall[nrow][ncol])
+			if (!visited[nrow][ncol] && check(nrow, ncol))
 			{
-				if (start[nrow][ncol] > 0)
-					pq.push(Need{nrow, ncol, dis + 1});
-
 				visited[nrow][ncol] = true;
-				q.push(make_pair(Pos{ nrow, ncol }, dis + 1));
-
-				if (pq.size() == M - (round - 1))
-					break;
+				q.push_back(make_pair(Pos{ nrow, ncol }, dis + 1));
 			}
 		}
 	}
 
-	if (pq.empty())
+	if (mem.empty() || first > fuel)
+		return -1;
+	else
 	{
-		fuel = -1;
-		return;
+		int row = 21;
+		int col = 21;
+
+		for (int i = 0; i < mem.size(); i++)
+		{
+			if (mem[i].row < row)
+			{
+				row = mem[i].row;
+				col = mem[i].col;
+			}
+			else if (mem[i].row == row)
+			{
+				if (mem[i].col < col)
+					col = mem[i].col;
+			}
+		}
+
+		int num = pas[row][col];
+		pas[row][col] = 0;
+		fuel -= first;
+		driver.row = row;
+		driver.col = col;
+		return num;
 	}
 
-	int drow = pq.top().row;
-	int dcol = pq.top().col;
-	int minus = pq.top().distance;
-	pq.pop();
-
-	taxi = { drow, dcol };
-	fuel -= minus;
 }
 
-void putDown(int num)
+// 가는 길에 연료가 고갈되면 false, 도착 가능하면 true
+bool findDes(int num)
 {
-	bool visited[20][20] = { false };
-	queue<pair<Pos, int>> q;
-	visited[taxi.row][taxi.col] = true;
-	q.push(make_pair(taxi, 0));
+	// 연료 소모
+	// 연료 추가
+
+	bool visited[21][21] = { false };
+	deque<pair<Pos, int>> q;
+	visited[driver.row][driver.col] = true;
+	q.push_back(make_pair(Pos{ driver.row, driver.col }, 0));
 
 	while (!q.empty())
 	{
 		int row = q.front().first.row;
 		int col = q.front().first.col;
 		int dis = q.front().second;
-		q.pop();
+		q.pop_front();
+
+		if (dis > fuel)
+			return false;
+
+		if (des[num].row == row && des[num].col == col)
+		{
+			driver.row = row;
+			driver.col = col;
+			fuel += dis;
+			return true;
+		}
 
 		for (int i = 0; i < 4; i++)
 		{
 			int nrow = row + dr[i];
 			int ncol = col + dc[i];
 
-			if (!outofrange(nrow, ncol) && !visited[nrow][ncol] && !wall[nrow][ncol])
+			if (!visited[nrow][ncol] && check(nrow, ncol))
 			{
-				if ((des[num - 1].row == nrow && des[num - 1].col == ncol) || dis >= fuel)
-				{
-					// fuel: 9, dis: 9
-					if (dis < fuel)
-						fuel += ((dis + 1) * 2);
-					
-					taxi = { nrow, ncol };
-					fuel -= (dis + 1);
-					return;
-				}
-
 				visited[nrow][ncol] = true;
-				q.push(make_pair(Pos{ nrow, ncol }, dis + 1));
+				q.push_back(make_pair(Pos{ nrow, ncol }, dis + 1));
 			}
 		}
 	}
 
-	fuel = -1;
-	return;
+	return false;
 }
-
 
 int main()
 {
@@ -153,36 +150,73 @@ int main()
 	//freopen("input.txt", "r", stdin);
 
 	cin >> N >> M >> fuel;
-	for (int i = 0; i < N; i++)
+
+	for (int i = 1; i <= N; i++)
 	{
-		for (int j = 0; j < N; j++)
+		for (int j = 1; j <= N; j++)
 		{
-			cin >> wall[i][j];
+			cin >> arr[i][j];
 		}
 	}
 
-	int a, b, c, d;
-	cin >> a >> b;
-	taxi = { a - 1, b - 1 };
+	//Pos tpas[401];
+	//Pos tdes[410];
+	cin >> driver.row;
+	cin >> driver.col;
 	for (int i = 1; i <= M; i++)
 	{
+		int a, b, c, d;
 		cin >> a >> b >> c >> d;
-		start[a - 1][b - 1] = i;
-		des[i - 1] = { c - 1, d - 1 };
+		pas[a][b] = i;
+		des[i] = Pos{ c,d };
+		/*tpas[i].row = a;
+		tpas[i].col = b;
+		tdes[i].row = c;
+		tdes[i].col = d;*/
 	}
 
-	for (int round = 1; round <= M; round++)
+
+	/*for (int i = 1; i <= N; i++)
 	{
-		Take(round);
-		if (fuel < 0)
-			break;
-
-		int num = start[taxi.row][taxi.col];
-		start[taxi.row][taxi.col] = 0;
-
-		putDown(num);
-		if (fuel < 0)
-			break;
+		for (int j = 1; j <= N; j++)
+		{
+			cout << arr[i][j] << " ";
+		}
+		cout << "\n";
 	}
+	cout << "\n";
+
+	cout << driver.row << " " << driver.col << "\n";
+
+	for (int i = 1; i <= M; i++)
+	{
+		cout << tpas[i].row << " " << tpas[i].col << " " << tdes[i].row << " " << tdes[i].col << "\n";
+	}*/
+
+
+	for (int i = 1; i <= M; i++)
+	{
+		int next;
+		next = findPas();
+
+		/*cout << "driver.row: " << driver.row << " driver.col: " << driver.col << "\n";
+		cout << "next: " << next << "\n";
+		cout << "fuel1: " << fuel << "\n";*/
+
+		if (next < 0)
+		{
+			fuel = -1;
+			break;
+		}
+
+		if (!findDes(next))
+		{
+			fuel = -1;
+			break;
+		}
+
+		//cout << "fuel2: " << fuel << "\n";
+	}
+
 	cout << fuel << "\n";
 }
