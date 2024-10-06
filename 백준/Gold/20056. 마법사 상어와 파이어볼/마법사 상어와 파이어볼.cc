@@ -1,57 +1,44 @@
-// 같은 칸에 여러 개의 파이어볼을 어떻게 다룰 것인가
-// 파이어볼의 소멸과 질량, 속력, 방향을 어떻게 다룰 것인가
-
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 
 using namespace std;
 
 struct Fire {
-	int m;
-	int s;
-	int d;
+	int mass;
+	int speed;
+	int direct;
 };
+
+int N, M, K;
 
 int dr[] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 int dc[] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 
-int N, M, K;
 vector<Fire> fire[51][51];
-
-pair<int, int> connect(int row, int col)
-{
-	pair<int, int> ret = make_pair(row, col);
-	if (row < 1)
-		ret.first = N + row % N;
-	else if (row > N)
-		ret.first = (row - 1) % N + 1;
-	if (col < 1)
-		ret.second = N + col % N;
-	else if (col > N)
-		ret.second = (col - 1) % N + 1;
-
-	return ret;
-}
 
 void move()
 {
-	vector<Fire> mem[51][51];
-
+	vector<Fire> temp[51][51];
+	
 	for (int i = 1; i <= N; i++)
 	{
 		for (int j = 1; j <= N; j++)
 		{
-			if (!fire[i][j].empty())
+			for (int k = fire[i][j].size() - 1; k >= 0 ; k--)
 			{
-				for (auto f : fire[i][j])
-				{
-					int row = i + f.s * dr[f.d];
-					int col = j + f.s * dc[f.d];
-					pair<int, int> pos = connect(row, col);
+				int nrow = i + fire[i][j][k].speed * dr[fire[i][j][k].direct];
+				int ncol = j + fire[i][j][k].speed * dc[fire[i][j][k].direct];
 
-					mem[pos.first][pos.second].push_back(f);
-				}
+				if (nrow > 0)
+					nrow = (nrow - 1) % N + 1;
+				else
+					nrow = N - abs(nrow) % N;
+				if (ncol > 0)
+					ncol = (ncol - 1) % N + 1;
+				else
+					ncol = N - abs(ncol) % N;
+				temp[nrow][ncol].push_back(Fire{ fire[i][j][k].mass, fire[i][j][k].speed, fire[i][j][k].direct });
+				fire[i][j].pop_back();
 			}
 		}
 	}
@@ -60,42 +47,40 @@ void move()
 	{
 		for (int j = 1; j <= N; j++)
 		{
-			if (mem[i][j].size() >= 2)
+			if (temp[i][j].size() > 1)
 			{
-				int mass = 0;
-				int speed = 0;
-				pair<int, int> oddEven = make_pair(0, 0);
-				int size = mem[i][j].size();
-
-				for (int k = 0; k < size; k++)
+				int even = 0;
+				int odd = 0;
+				int nmass = 0;
+				int nspeed = 0;
+				for (int k = 0; k < temp[i][j].size(); k++)
 				{
-					mass += mem[i][j][mem[i][j].size() - 1].m;
-					speed += mem[i][j][mem[i][j].size() - 1].s;
-					if (mem[i][j][mem[i][j].size() - 1].d % 2 == 0)
-						++oddEven.first;
+					if (temp[i][j][k].direct % 2 == 0)
+						even++;
 					else
-						++oddEven.second;
-					mem[i][j].pop_back();
+						odd++;
+					nmass += temp[i][j][k].mass;
+					nspeed += temp[i][j][k].speed;
 				}
+				nmass /= 5;
+				nspeed /= temp[i][j].size();
 
-				mass /= 5;
-				speed /= size;
+				if (nmass == 0)
+					continue;
 
-				if (mass != 0)
+				if (even == temp[i][j].size() || odd == temp[i][j].size())
 				{
-					int k;
-					if (oddEven.first == 0 || oddEven.second == 0)
-						k = 0;
-					else
-						k = 1;
-					for (; k < 8; k += 2)
-						mem[i][j].push_back(Fire{ mass, speed, k });
+					for (int k = 0; k < 8; k += 2)
+						fire[i][j].push_back(Fire{ nmass, nspeed, k });
+				}
+				else
+				{
+					for (int k = 1; k < 8; k += 2)
+						fire[i][j].push_back(Fire{ nmass, nspeed, k });
 				}
 			}
-
-			//fire[i][j].clear();
-			//copy(mem[i][j].begin(), mem[i][j].end(), fire[i][j].begin());
-			fire[i][j] = mem[i][j];
+			else if (temp[i][j].size() == 1)
+				fire[i][j].push_back(Fire{ temp[i][j][0].mass, temp[i][j][0].speed, temp[i][j][0].direct });
 		}
 	}
 }
@@ -107,30 +92,53 @@ int main()
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
+
 	cin >> N >> M >> K;
 
-	int r, c, m, s, d;
 	for (int i = 0; i < M; i++)
 	{
+		int r, c, m, s, d;
 		cin >> r >> c >> m >> s >> d;
 		fire[r][c].push_back(Fire{ m, s, d });
 	}
+	//for (int i = 1; i <= N; i++)
+	//{
+	//	for (int j = 1; j <= N; j++)
+	//	{
+	//		if (!fire[i][j].empty())
+	//			cout << fire[i][j][0].mass << " ";
+	//		else
+	//			cout << "0 ";
+	//	}
+	//	cout << "\n";
+	//}
+	//cout << "\n";
 
-	for (int round = 1; round <= K; round++)
+	for (int i = 0; i < K; i++)
+	{
 		move();
-	
+		//for (int i = 1; i <= N; i++)
+		//{
+		//	for (int j = 1; j <= N; j++)
+		//	{
+		//		if (!fire[i][j].empty())
+		//			cout << fire[i][j][0].mass << " ";
+		//		else
+		//			cout << "0 ";
+		//	}
+		//	cout << "\n";
+		//}
+		//cout << "\n";
+	}
+		
 	int answer = 0;
-
 	for (int i = 1; i <= N; i++)
 	{
 		for (int j = 1; j <= N; j++)
 		{
-			for (auto f : fire[i][j])
-			{
-				answer += f.m;
-			}
+			for (int k = 0; k < fire[i][j].size(); k++)
+				answer += fire[i][j][k].mass;
 		}
 	}
-
 	cout << answer << "\n";
 }
