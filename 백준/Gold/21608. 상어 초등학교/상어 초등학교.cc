@@ -1,26 +1,29 @@
-// 4명의 좋아하는 학생 저장
-
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <cstring>
 #include <cmath>
 
 using namespace std;
 
+struct Mem {
+	int row;
+	int col;
+	int blink;
+	int student;
+};
+
+int arr[21][21] = { 0 };
+int seq[400] = { 0 };
+bool like[401][401] = { false };
 int N;
-vector<int> like[401];
-int map[21][21] = { 0 };
 
 int dr[] = { -1, 1, 0, 0 };
 int dc[] = { 0, 0, -1, 1 };
 
-bool outofrange(int row, int col)
+bool inofrange(int row, int col)
 {
 	if (1 <= row && row <= N && 1 <= col && col <= N)
-		return false;
-	return true;
+		return true;
+	return false;
 }
 
 int main()
@@ -30,68 +33,94 @@ int main()
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
+
 	cin >> N;
 
-	memset(map, 0, sizeof(map));
-
-	for (int count = 1; count <= N * N; count++)
+	for (int i = 0; i < N * N; i++)
 	{
-		int my;
-		cin >> my;
-		for (int i = 0; i < 4; i++)
+		cin >> seq[i];
+		int temp;
+		for (int j = 0; j < 4; j++)
 		{
-			int you;
-			cin >> you;
-			like[my].push_back(you);
+			cin >> temp;
+			like[seq[i]][temp] = true;
 		}
+	}
 
-		int maxCnt = -1;
-		int maxBlink = -1;
-		pair<int, int> pos;
+	for (int idx = 0; idx < N * N; idx++)
+	{
+		vector<Mem> mem;
+		int num = seq[idx];
+		int maxCnt = 0;
 
 		for (int i = 1; i <= N; i++)
 		{
 			for (int j = 1; j <= N; j++)
 			{
-				if (map[i][j] != 0)
+				if (arr[i][j] != 0)
 					continue;
 
 				int cnt = 0;
 				int blink = 0;
 				for (int k = 0; k < 4; k++)
 				{
-					int row = i + dr[k];
-					int col = j + dc[k];
-					
-					if (!outofrange(row, col))
-					{
-						int idx = map[row][col];
-						if (find(like[my].begin(), like[my].end(), idx) != like[my].end())
-							++cnt;
-						if (idx == 0)
-							++blink;
-					}
+					int nrow = i + dr[k];
+					int ncol = j + dc[k];
+
+					if (inofrange(nrow, ncol) && like[num][arr[nrow][ncol]])
+						cnt++;
+					else if (inofrange(nrow, ncol) && arr[nrow][ncol] == 0)
+						blink++;
 				}
 
 				if (maxCnt < cnt)
 				{
+					mem.clear();
+					mem.push_back(Mem{ i, j, blink, cnt });
 					maxCnt = cnt;
-					maxBlink = blink;
-					pos = { i, j };
 				}
 				else if (maxCnt == cnt)
+					mem.push_back(Mem{ i, j, blink, cnt });
+			}
+		}
+
+		Mem best;
+		best.row = N + 1;
+		best.col = N + 1;
+		best.blink = 0;
+		best.student = 0;
+		for (int i = 0; i < mem.size(); i++)
+		{
+			if (mem[i].student > best.student)
+				best = mem[i];
+			else if (mem[i].student == best.student)
+			{
+				if (mem[i].blink > best.blink)
+					best = mem[i];
+				else if (mem[i].blink == best.blink)
 				{
-					if (maxBlink < blink)
+					if (mem[i].row < best.row)
+						best = mem[i];
+					else if (mem[i].row == best.row)
 					{
-						maxCnt = cnt;
-						maxBlink = blink;
-						pos = { i, j };
+						if (mem[i].col < best.col)
+							best = mem[i];
 					}
 				}
 			}
 		}
 
-		map[pos.first][pos.second] = my;
+		arr[best.row][best.col] = num;
+
+		//for (int i = 1; i <= N; i++)
+		//{
+		//	for (int j = 1; j <= N; j++)
+		//	{
+		//		cout << arr[i][j] << " ";
+		//	}
+		//	cout << "\n";
+		//}
+		//cout << "\n";
 	}
 
 	int answer = 0;
@@ -99,33 +128,19 @@ int main()
 	{
 		for (int j = 1; j <= N; j++)
 		{
-			int my = map[i][j];
+			int num = arr[i][j];
 			int cnt = 0;
 			for (int k = 0; k < 4; k++)
 			{
-				int row = i + dr[k];
-				int col = j + dc[k];
+				int nrow = i + dr[k];
+				int ncol = j + dc[k];
 
-				if (!outofrange(row, col))
-				{
-					int idx = map[row][col];
-					if (find(like[my].begin(), like[my].end(), idx) != like[my].end())
-						++cnt;
-				}
+				if (inofrange(nrow, ncol) && like[num][arr[nrow][ncol]])
+					cnt++;
 			}
-			if (cnt > 0)
-				answer += pow(10, cnt - 1);
+			answer += pow(10, cnt - 1);
 		}
 	}
 
 	cout << answer << "\n";
-
-	//for (int i = 1; i <= N; i++)
-	//{
-	//	for (int j = 1; j <= N; j++)
-	//	{
-	//		cout << map[i][j] << " ";
-	//	}
-	//	cout << "\n";
-	//}
 }
