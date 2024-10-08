@@ -1,5 +1,5 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
+#include <queue>
 #include <vector>
 
 using namespace std;
@@ -9,142 +9,145 @@ struct Pos {
 	int col;
 };
 
-int dr[] = { 0, 0, -1, -1, -1, 0, 1, 1, 1 };
-int dc[] = { 0, -1, -1, 0, 1, 1, 1, 0, -1 };
-
+int A[50][50] = { 0 };
 int N, M;
-int A[51][51];
-bool check[51][51] = { false };
+int dr[] = { 0, -1, -1, -1, 0, 1, 1, 1 };
+int dc[] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 
-Pos connect(int row, int col)
+deque<Pos> cloud;
+bool mem[50][50] = { false };
+
+bool inofrange(int row, int col)
 {
-	Pos ret = { row, col };
-	if (1 <= row && row <= N && 1 <= col && col <= N)
-		return ret;
-	else
-	{
-		if (row < 1)
-			ret.row = N - (-1 * row) % 5;
-		if (col < 1)
-			ret.col = N - (-1 * col) % 5;
-		if (row > N)
-			ret.row = 1 + (row - (N + 1)) % N;
-		if (col > N)
-			ret.col = 1 + (col - (N + 1)) % N;
+	if (0 <= row && row < N && 0 <= col && col < N)
+		return true;
+	return false;
+}
 
-		return ret;
+void initCloud()
+{
+	cloud.push_back(Pos{ N - 2, 0 });
+	cloud.push_back(Pos{ N - 2, 1 });
+	cloud.push_back(Pos{ N - 1, 0 });
+	cloud.push_back(Pos{ N - 1, 1 });
+}
+
+// 1 3 5 7
+void waterCopyBug()
+{
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			if (!mem[i][j])
+				continue;
+
+			int cnt = 0;
+			for (int k = 1; k < 8; k += 2)
+			{
+				int nrow = i + dr[k];
+				int ncol = j + dc[k];
+
+				if (inofrange(nrow, ncol) && A[nrow][ncol] > 0)
+					cnt++;
+			}
+
+			A[i][j] += cnt;
+		}
 	}
 }
 
-bool outofrange(int row, int col)
+void moveCloud(int direct, int speed)
 {
-	if (1 <= row && row <= N && 1 <= col && col <= N)
-		return false;
-	return true;
+	while (!cloud.empty())
+	{
+		int row = cloud.front().row;
+		int col = cloud.front().col;
+		cloud.pop_front();
+
+		int nrow = row + speed * dr[direct];
+		int ncol = col + speed * dc[direct];
+
+		if (nrow >= 0)
+			nrow %= N;
+		else
+			nrow = N - 1 - abs(nrow + 1) % N;
+		if (ncol >= 0)
+			ncol %= N;
+		else
+			ncol = N - 1 - abs(ncol + 1) % N;
+
+		A[nrow][ncol]++;
+		mem[nrow][ncol] = true;
+	}
+}
+
+void createCloud()
+{
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			if (!mem[i][j])
+			{
+				if (A[i][j] >= 2)
+				{
+					cloud.push_back(Pos{ i, j });
+					A[i][j] -= 2;
+				}
+			}
+			else
+				mem[i][j] = false;
+		}
+	}
 }
 
 int main()
 {
+	// initCloud(); -> (N, 1), (N, 2), (N-1, 1), (N-1, 2)
+	// moveCloud(); >> addWater(); removeCloud();
+	// waterCopyBug(); -> 이때는 이동과 다르게 경계를 넘어가는 칸은 대각선 방향으로 거리가 1인 칸이 아니다. -> 이동과는 다르게 처리
+	// createCloud(); -> 구름이 생기는 칸은 3에서 구름이 사라진 칸이 아니어야 한다. -> 사라진 칸 기록
+
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
-	
+
 	cin >> N >> M;
 
-	for (int i = 1; i <= N; i++)
-	{
-		for (int j = 1; j <= N; j++)
-		{
+	for (int i = 0; i < N; i++)
+		for (int j = 0; j < N; j++)
 			cin >> A[i][j];
-		}
-	}
 
-	vector<Pos> cloud;
-	cloud.push_back(Pos{ N, 1 });
-	cloud.push_back(Pos{ N, 2 });
-	cloud.push_back(Pos{ N - 1, 1 });
-	cloud.push_back(Pos{ N - 1, 2 });
-	vector<Pos> history;
+	initCloud();
 
-	for (int round = 1; round <= M; round++)
+	int d, s;
+	for (int step = 0; step < M; step++)
 	{
-		int d, s;
 		cin >> d >> s;
+		moveCloud(d - 1, s);
 
-		for (auto c : cloud)
-		{
-			int nrow, ncol;
-			/*nrow = c.row + s * dr[d];
-			ncol = c.col + s * dc[d];*/
-			if (c.row + s * dr[d] > 0)
-				nrow = (c.row + s * dr[d] - 1) % N + 1;
-			else
-				nrow = N + (c.row + s * dr[d]) % N;
-			if (c.col + s * dc[d] > 0) 
-				ncol = (c.col + s * dc[d] - 1) % N + 1;
-			else
-				ncol = N + (c.col + s * dc[d]) % N;
-
-			A[nrow][ncol] += 1;
-			history.push_back(Pos{ nrow, ncol });
-
-			//cout << "nrow: " << nrow << " ncol: " << ncol << "\n";
-
-		/*	Pos pos = connect(nrow, ncol);
-			cout << "nrow: " << pos.row << " ncol: " << pos.col << "\n";
-			A[pos.row][pos.col] += 1;
-			history.push_back(pos);*/
-			
-		}
+		//for (int i = 0; i < N; i++)
+		//{
+		//	for (int j = 0; j < N; j++)
+		//	{
+		//		cout << A[i][j] << " ";
+		//	}
+		//	cout << "\n";
+		//}
 		//cout << "\n";
-		for (auto h : history)
-		{
-			int cnt = 0;
-			int row = h.row;
-			int col = h.col;
+		
+		waterCopyBug();
 
-			for (int i = 1; i <= 4; i++)
-			{
-				int nrow = row + dr[2 * i];
-				int ncol = col + dc[2 * i];
-
-				if (!outofrange(nrow, ncol) && A[nrow][ncol] > 0)
-					++cnt;
-			}
-			check[row][col] = true;
-			A[row][col] += cnt;
-		}
-
-		cloud.clear();
-
-		for (int i = 1; i <= N; i++)
-		{
-			for (int j = 1; j <= N; j++)
-			{
-				if (!check[i][j] && A[i][j] >= 2)
-				{
-					cloud.push_back(Pos{ i, j });
-					A[i][j] -= 2;
-				}
-				else
-					check[i][j] = false;
-			}
-		}
-
-		history.clear();
+		createCloud();
 	}
 
 	int answer = 0;
-
-	for (int i = 1; i <= N; i++)
-	{
-		for (int j = 1; j <= N; j++)
-		{
+	for (int i = 0; i < N; i++)
+		for (int j = 0; j < N; j++)
 			answer += A[i][j];
-		}
-	}
 
 	cout << answer << "\n";
 }
