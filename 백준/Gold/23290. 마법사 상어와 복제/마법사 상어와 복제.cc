@@ -1,308 +1,235 @@
-// 2023-09-20  
-// bj23291_어항정리    
-// 3시간 5분  
-// 문제 조건을 따라가며 직사각형 배열 회전 및 시뮬레이션
-// 구현, 시뮬레이션, 회전
-// vector, linked list
-
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
-#include <cstring>
-#include <queue>
 #include <vector>
-#include <cmath>
 
 using namespace std;
 
-struct Pos {
+struct Info {
 	int row;
 	int col;
 };
 
-int erow[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-int ecol[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+vector<int> fish[4][4];
+Info shark;
+int M, S;
+int dr[] = { 0, -1, -1, -1, 0, 1, 1, 1 };
+int dc[] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 
-int frow[4] = { -1, 0, 1, 0 };
-int fcol[4] = { 0, -1, 0, 1 };
+int sr[] = { -1, 0, 1, 0 };
+int sc[] = { 0, -1, 0, 1 };
 
-struct cmp {
-	bool operator() (pair<int, int> a, pair<int, int> b)
+int smell[4][4] = { 0 };
+vector<int> mem[4][4];
+vector<Info> memMove;
+vector<Info> bestMove;
+
+int maxEat = 0;
+
+bool inofrange(int row, int col)
+{
+	if (0 <= row && row < 4 && 0 <= col && col < 4)
+		return true;
+	return false;
+}
+
+void copyMagic()
+{
+	for (int i = 0; i < 4; i++)
 	{
-		if (a.first < b.first)
-			return true;
-		else if (a.first == b.first)
+		for (int j = 0; j < 4; j++)
 		{
-			if (a.second > b.second)
-				return true;
-			else
-				return false;
+			mem[i][j].clear();
+			mem[i][j] = fish[i][j];
+			//for (auto t : fish[i][j])
+			//	mem[i][j].push_back(t);
 		}
-		else
-			return false;
 	}
-};
+}
+
+void fishMove()
+{
+	vector<int> temp[4][4];
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			for (auto t : fish[i][j])
+			{
+				int flag = false;
+				for (int k = 0; k < 8; k++)
+				{ 
+					int direct = (t + 7 * k) % 8;
+					int row = i + dr[direct];
+					int col = j + dc[direct];
+
+					if (!(row == shark.row && col == shark.col) && inofrange(row, col) && smell[row][col] == 0)
+					{
+						flag = true;
+						temp[row][col].push_back(direct);
+						break;
+					}
+				}
+
+				if (!flag)
+					temp[i][j].push_back(t);
+			}
+		}
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			fish[i][j].clear();
+			fish[i][j] = temp[i][j];
+			//for (auto t : temp[i][j])
+			//	fish[i][j].push_back(t);
+		}
+	}
+}
+
+void sharkMove(int row, int col, int depth, int eat)
+{
+	if (depth > 3)
+	{
+		if (maxEat < eat)
+		{
+			bestMove.clear();
+			shark.row = row;
+			shark.col = col;
+			maxEat = eat;
+			bestMove = memMove;
+		}
+		return;
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		int nrow = row + sr[i];
+		int ncol = col + sc[i];
+
+		if (inofrange(nrow, ncol))
+		{
+			vector<int> temp;
+			temp = fish[nrow][ncol];
+			fish[nrow][ncol].clear();
+			memMove.push_back(Info{nrow, ncol});
+
+			sharkMove(nrow, ncol, depth + 1, eat + temp.size());
+
+			fish[nrow][ncol] = temp;
+			memMove.pop_back();
+		}
+	}
+}
+
+void smellDel()
+{
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			if (smell[i][j] > 0)
+				smell[i][j]--;
+}
+
+void pasteMagic()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			for (auto t : mem[i][j])
+				fish[i][j].push_back(t);
+			mem[i][j].clear();
+		}
+	}
+}
+
+void printMap()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			cout << fish[i][j].size() << " ";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
+void printSmell()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			cout << smell[i][j] << " ";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
 
 int main()
 {
+	// copyMagic();
+	// fishMove();
+	// sharkMove();
+	// smellDel();
+	// pasteMagic();
+
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
-
-	vector<int> map[5][5];
-	int fishCnt[5][5] = { 0 };
-
-	vector<int> mem[5][5];
-	int memCnt[5][5] = { 0 };
-
-	int smell[5][5] = { 0 };
-
-	Pos shark;
-	int answer = 0;
-
-	int M, S;
+		
 	cin >> M >> S;
-
 	int x, y, d;
 	for (int i = 0; i < M; i++)
 	{
 		cin >> x >> y >> d;
-		map[x][y].push_back(d);
-		++fishCnt[x][y];
+		fish[x - 1][y - 1].push_back(d - 1);
 	}
+	cin >> shark.row >> shark.col;
+	shark.row--;
+	shark.col--;
 
-	cin >> x >> y;
-	shark = Pos{ x, y };
-
-	for (int prac = 0; prac < S; prac++)
+	int trow, tcol;
+	for (int step = 0; step < S; step++)
 	{
-		answer = 0;
-		// 1. 상어가 모든 물고기에게 복제 마법을 시전한다.
-		for (int i = 1; i <= 4; i++)
+		copyMagic();
+		fishMove();
+		//printMap();
+
+		maxEat = -1;
+		memMove.clear();
+		bestMove.clear();
+		trow = shark.row;
+		tcol = shark.col;
+
+		sharkMove(trow, tcol, 1, 0);
+
+		for (auto t : bestMove)
 		{
-			for (int j = 1; j <= 4; j++)
+			//cout << "t.row: " << t.row + 1 << " t.col: " << t.col + 1 << "\n";
+			if (fish[t.row][t.col].size() > 0)
 			{
-				for (int k = 0; k < fishCnt[i][j]; k++)
-					mem[i][j].push_back(map[i][j][k]);
-				memCnt[i][j] = fishCnt[i][j];
+				smell[t.row][t.col] = 3;
+				fish[t.row][t.col].clear();
 			}
 		}
 
-		// 2. 모든 물고기가 한 칸 이동한다. 상어가 있는 칸, 물고기의 냄새가 있는 칸, 격자의 범위를 벗어나는 칸으로는 이동할 수 없다. 
-		queue<pair<Pos, int>> q;
+		smellDel();
+		pasteMagic();
 
-		for (int i = 1; i <= 4; i++)
-		{
-			for (int j = 1; j <= 4; j++)
-			{
-				int del = 0;
-				int cnt = fishCnt[i][j];
-				if (cnt == 0)
-					continue;
-
-				for (int k = 0; k < cnt; k++)
-				{
-					// 이동할 수 있는 칸을 향할 때까지 방향을 45도 반시계 회전시킨다.
-					int direct = map[i][j][k];
-					int escape = 0;
-
-					while (true)
-					{
-						++escape;
-						if (escape == 9)
-							break;
-						int nrow = i + erow[direct - 1];
-						int ncol = j + ecol[direct - 1];
-
-						if (1 <= nrow && nrow <= 4 && 1 <= ncol && ncol <= 4)
-						{
-							if (smell[nrow][ncol] == 0 && (nrow != shark.row || ncol != shark.col))
-							{		
-								q.push(make_pair(Pos{ nrow, ncol }, direct));
-								break;
-							}
-						}
-						//  ←, ↖, ↑, ↗, →, ↘, ↓, ↙ 
-						if (direct == 1)
-							direct = 8;
-						else
-							direct -= 1;
-					}
-
-					if (escape == 9)
-					{
-						q.push(make_pair(Pos{ i, j }, direct));
-					}
-				}
-			}
-		}
-
-		for (int i = 1; i <= 4; i++)
-		{
-			for (int j = 1; j <= 4; j++)
-			{
-				map[i][j].clear();
-				fishCnt[i][j] = 0;
-			}
-		}
-
-		while(!q.empty())
-		{
-			int row = q.front().first.row;
-			int col = q.front().first.col;
-			int d = q.front().second;
-			map[row][col].push_back(d);
-			++fishCnt[row][col];
-			q.pop();
-		}
-
-		// 3. 가능한 이동 방법 중에서 제외되는 물고기의 수가 가장 많은 방법으로 이동하며, 그러한 방법이 여러가지인 경우 사전 순으로 가장 앞서는 방법을 이용한다. 
-		priority_queue<pair<int, int>, vector<pair<int, int>>, cmp> pq;
-
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				for (int k = 0; k < 4; k++)
-				{
-					vector<pair<Pos, int>> back;
-
-					int value = 100 * (i + 1) + 10 * (j + 1) + k + 1;
-					int eat = 0;
-
-					int nrow = shark.row + frow[i];
-					int ncol = shark.col + fcol[i];
-
-					if (1 > nrow || nrow > 4 || 1 > ncol || ncol > 4)
-						continue;
-
-					back.push_back(make_pair(Pos{ nrow, ncol }, fishCnt[nrow][ncol]));
-					eat += fishCnt[nrow][ncol];
-					fishCnt[nrow][ncol] = 0;
-
-					nrow += frow[j];
-					ncol += fcol[j];
-
-					if (1 > nrow || nrow > 4 || 1 > ncol || ncol > 4)
-					{
-						for (auto b : back)
-							fishCnt[b.first.row][b.first.col] = b.second;
-						continue;
-					}
-						
-					back.push_back(make_pair(Pos{ nrow, ncol }, fishCnt[nrow][ncol]));
-					eat += fishCnt[nrow][ncol];
-					fishCnt[nrow][ncol] = 0;
-
-					nrow += frow[k];
-					ncol += fcol[k];
-
-					if (1 > nrow || nrow > 4 || 1 > ncol || ncol > 4)
-					{
-						for (auto b : back)
-							fishCnt[b.first.row][b.first.col] = b.second;
-						continue;
-					}
-						
-					//back.push_back(make_pair(Pos{ nrow, ncol }, fishCnt[nrow][ncol]));
-					eat += fishCnt[nrow][ncol];
-					//fishCnt[nrow][ncol] = 0;
-
-					pq.push(make_pair(eat, value));
-
-					for (auto b : back)
-						fishCnt[b.first.row][b.first.col] = b.second;
-				}
-			}
-		}
-
-		int path = pq.top().second;
-		//cout << "path: " << path << "\n";
-
-		// 3. 그 칸에 있는 모든 물고기는 격자에서 제외되며, 물고기 냄새를 남긴다.
-		for (int i = 2; i >= 0; i--)
-		{
-			int div = pow(10, i);
-			int row = shark.row + frow[path / div - 1];
-			int col = shark.col + fcol[path / div - 1];
-			path = path % div;
-
-			if (fishCnt[row][col] > 0)
-			{
-				smell[row][col] = 3;
-				map[row][col].clear();
-				fishCnt[row][col] = 0;
-			}
-
-			shark.row = row;
-			shark.col = col;
-		}
-
-		for (int i = 1; i <= 4; i++)
-		{
-			for (int j = 1; j <= 4; j++)
-			{
-				// 4. 두 번 전 연습에서 생긴 물고기의 냄새가 격자에서 사라진다.
-				if (smell[i][j] > 0)
-					--smell[i][j];
-
-				// 5. 1에서 사용한 복제 마법이 완료된다. 모든 복제된 물고기는 1에서의 위치와 방향을 그대로 갖게 된다.
-				for (int k = 0; k < memCnt[i][j]; k++)
-					map[i][j].push_back(mem[i][j][k]);
-
-				fishCnt[i][j] += memCnt[i][j];
-				answer += fishCnt[i][j];
-			}
-		}
-
-		//for (int i = 1; i <= 4; i++)
-		//{
-		//	for (int j = 1; j <= 4; j++)
-		//	{
-		//		cout << fishCnt[i][j] << " ";
-		//	}
-		//	cout << "\n";
-		//}
-		//cout << "\n";
-
-		for (int i = 1; i <= 4; i++)
-		{
-			for (int j = 1; j <= 4; j++)
-			{
-				mem[i][j].clear();
-				memCnt[i][j] = 0;
-			}
-		}
+		//cout << "shark.row: " << shark.row + 1<< " shakr.col: " << shark.col + 1 << "\n";
+		//printMap();
+		//printSmell();
 	}
 
+	int answer = 0;
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			answer += fish[i][j].size();
 	cout << answer << "\n";
 }
-
-
-
-//map[1][1][0] = 2;
-//map[1][1][1] = 7;
-//map[1][1][2] = -1;
-//map[1][1][3] = 4;
-//map[1][1][4] = -1;
-//map[1][1][5] = 5;
-
-
-//int index = 0;
-//for (int k = 0; k < 6; k++)
-//{
-//	if (map[1][1][k] != -1)
-//	{
-//		int temp = map[1][1][index];
-//		map[1][1][index] = map[1][1][k];
-//		map[1][1][k] = temp;
-
-//		++index;
-//	}
-//}
-
-//for (int k = 0; k < 6; k++)
-//{
-//	cout << map[1][1][k] << " ";
-//}
