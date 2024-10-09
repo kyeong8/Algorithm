@@ -1,229 +1,250 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <cstring>
 
 using namespace std;
 
-int map[100][100] = { 0 };
+struct Info {
+	int index;
+	int length;
+};
+
 int N, K;
+int home[100][100] = { 0 };
 
-bool visited[100][100] = { false };
+int dr[] = { -1, 1, 0, 0 };
+int dc[] = { 0, 0, -1, 1 };
 
-int r[4] = { -1, 1, 0, 0 };
-int c[4] = { 0, 0, -1, 1 };
-
-void bfs(int prevRow, int index)
+bool inofrange(int row, int col)
 {
-	memset(visited, false, sizeof(visited));
+	if (0 <= row && row < N && 0 <= col && col < N)
+		return true;
+	return false;
+}
 
-	int mem[100][100] = { 0 };
-
-
-	for (int a = 0; a < prevRow + 1; a++)
+void printMap()
+{
+	for (int i = 0; i < N; i++)
 	{
-		for (int b = index; b < N; b++)
+		for (int j = 0; j < N; j++)
 		{
-			if (map[a][b] != 0)
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					int nrow = a + r[i];
-					int ncol = b + c[i];
+			cout << home[i][j] << " ";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
 
-					if (0 <= nrow && nrow < N && 0 <= ncol && ncol < N)
+bool findCondition()
+{
+	int maxFish = 0;
+	int minFish = 10001;
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			if (home[i][j] == 0)
+				continue;
+
+			if (maxFish < home[i][j])
+				maxFish = home[i][j];
+			if (minFish > home[i][j])
+				minFish = home[i][j];
+		}
+	}
+
+	if (abs(maxFish - minFish) <= K)
+		return true;
+	else
+		return false;
+}
+
+void addFish()
+{
+	int minFish = 10001;
+	vector<int> mem;
+	for (int i = 0; i < N; i++)
+	{
+		if (minFish > home[0][i])
+		{
+			mem.clear();
+			minFish = home[0][i];
+			mem.push_back(i);
+		}
+		else if (minFish == home[0][i])
+			mem.push_back(i);
+	}
+
+	for (auto t : mem)
+		home[0][t]++;
+}
+
+Info arrageHome()
+{
+	home[1][1] = home[0][0];
+	home[0][0] = 0;
+	//printMap();
+	int idx = 1;
+	int length = 0;
+	while (true)
+	{
+		int horizon = 0;
+		int vertical = 0;
+
+		for (int i = idx; i < N; i++)
+		{
+			if (home[1][i] > 0)
+				horizon++;
+			else
+				break;
+		}
+
+		while (true)
+		{
+			if (home[vertical][idx] > 0)
+				vertical++;
+			else
+				break;
+		}
+
+		if (idx + vertical + horizon - 1 >= N)
+			break;
+
+		for (int j = idx; j < idx + horizon; j++)
+		{
+			int startCol = idx + horizon;
+			int i = 0;
+			while (true)
+			{
+				if (home[i][j] == 0)
+					break;
+
+				home[idx + horizon - j][startCol++] = home[i][j];
+				home[i][j] = 0;
+				i++;
+			}
+		}
+		idx += horizon;
+		//printMap();
+		length = vertical + 1;
+	}
+
+	return Info{ idx, length };
+}
+
+void adjustFish(int index, int length)
+{
+	int temp[100][100] = { 0 };
+	for (int i = 0; i < length; i++)
+	{
+		for (int j = index; j < N; j++)
+		{
+			if (home[i][j] == 0)
+				continue;
+
+			for (int k = 0; k < 4; k++)
+			{
+				int nrow = i + dr[k];
+				int ncol = j + dc[k];
+
+				if (inofrange(nrow, ncol) && home[nrow][ncol] > 0 && home[i][j] > home[nrow][ncol])
+				{
+					int d = (home[i][j] - home[nrow][ncol]) / 5;
+					if (d > 0)
 					{
-						if (!visited[nrow][ncol] && map[nrow][ncol] != 0 && abs(map[nrow][ncol] - map[a][b]) >= 5)
-						{
-							int value = abs(map[nrow][ncol] - map[a][b]);
-							if (map[nrow][ncol] > map[a][b])
-							{
-								mem[nrow][ncol] -= value / 5;
-								mem[a][b] += value / 5;
-							}
-							else
-							{
-								mem[nrow][ncol] += value / 5;
-								mem[a][b] -= value / 5;
-							}
-						}
+						temp[i][j] -= d;
+						temp[nrow][ncol] += d;
 					}
 				}
-
-				visited[a][b] = true;
 			}
 		}
 	}
 
-
-	for (int a = 0; a < prevRow + 1; a++)
-	{
-		for (int b = index; b < N; b++)
-		{
-			map[a][b] += mem[a][b];
-		}
-	}
-
+	for (int i = 0; i < length; i++)
+		for (int j = index; j < N; j++)
+			home[i][j] += temp[i][j];
 }
 
+void stretching(int index, int length)
+{
+	int cursor = 0;
+
+	for (int j = index; j < N; j++)
+	{
+		for (int i = 0; i < length; i++)
+		{
+			if (home[i][j] > 0)
+			{
+				home[0][cursor++] = home[i][j];
+				if (i == 0 && cursor - 1 == j)
+					continue;
+				home[i][j] = 0;
+			}
+		}
+	}
+}
+
+void specificArrange()
+{
+	for (int i = 0; i < N / 2; i++)
+	{
+		home[1][N - 1 - i] = home[0][i];
+		home[0][i] = 0;
+	}
+	//printMap();
+	int idx = N / 2 + N / 4;
+	for (int j = N / 2 + N / 4 - 1; j >= N / 2; j--)
+	{
+		home[2][idx] = home[1][j];
+		home[3][idx] = home[0][j];
+		idx++;
+		home[1][j] = 0;
+		home[0][j] = 0;
+	}
+}
 
 int main()
 {
+	// findCondition();
+	// addFish();
+	// arrageHome();
+	// adjustFish();
+	// stretching();
+	// specificArrange();
+	// stretching();
+
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	cout.tie(NULL);
 
 	//freopen("input.txt", "r", stdin);
 
-	// 물고기가 있는 어항 중 가장 작은 열
-	int index = 0;
-	int answer = 0;
-
-	vector<pair<int, int>> small;
 	cin >> N >> K;
-
 	for (int i = 0; i < N; i++)
-		cin >> map[0][i];
+		cin >> home[0][i];
 
-
+	int answer = 0;
 	while (true)
 	{
-		int maxNum = 0;
-		int minNum = 10001;
-		// 물고기가 가장 적은 어항의 위치와 물고기 수의 차이를 구하는 과정
-		for (int i = 0; i < N; i++)
-		{
-			maxNum = max(maxNum, map[0][i]);
-
-			if (minNum == map[0][i])
-				small.push_back(make_pair(0, i));
-			else if (minNum > map[0][i])
-			{
-				minNum = map[0][i];
-				small.clear();
-				small.push_back(make_pair(0, i));
-			}
-		}
-
-		if (maxNum - minNum <= K)
+		if (findCondition())
 			break;
+		addFish();
+		Info ret = arrageHome();
+		adjustFish(ret.index, ret.length);
+		//printMap();
 
-		++answer;
+		stretching(ret.index, ret.length);
+		//printMap();
 
-		// 물고기의 수가 가장 적은 어항에 물고기를 한 마리 넣는다.
-		for (auto i : small)
-			++map[i.first][i.second];
+		specificArrange();
+		//printMap();
 
-		// 먼저, 가장 왼쪽에 있는 어항을 그 어항의 오른쪽에 있는 어항의 위에 올려 놓는다.
-		map[1][1] = map[0][0];
-		map[0][0] = 0;
-		index = 1;
+		adjustFish(N - N / 4, 4);
+		//printMap();
 
-		// 2개 이상 쌓여있는 어항을 모두 공중 부양시킨 다음, 전체를 시계방향으로 90도 회전시킨다
-		int row;
-		int col;
-
-		while (true)
-		{
-			row = 0; // 공중 부양 해야하는 행의 개수
-			col = 0; // 공중 부양 해야하는 열의 개수
-
-			for (int i = index; i < N; i++)
-			{
-				if (map[1][i] != 0)
-					++col;
-				else
-					break;
-			}
-
-			for (int i = 0; i < N; i++)
-			{
-				if (map[i][index] != 0)
-					++row;
-				else
-					break;
-			}
-
-			// index = 3, row = 3, col = 2
-			// 공중 부양시키고 회전시켜 쌓았을 때 범위를 넘는 경우
-			if (row + index + col > N)
-				break;
-
-			for (int i = 0; i < row; i++)
-			{
-				for (int j = index; j < col + index; j++)
-				{
-					// 쌓였을 때 높이 index는 공중 부양하는 column 개수가 된다.
-					// 거기서 column의 변화량 j - index 만큼 빠져 높이가 결정됨
-					// 오른쪽으로 증가하면 아래로 감소하기 때문
-					map[col - (j - index)][index + i + col] = map[i][j];
-					map[i][j] = 0;
-				}
-			}
-
-			// 공중 부양되어 쌓인 어항으로 인해
-			// 가장 작은 2층이상 어항의 index를 재갱신
-			index += col;
-		}
-
-		bfs(row, index);
-
-		for (int i = 0; i < col; i++)
-		{
-			for (int j = 0; j < row; j++)
-			{
-				map[0][i * row + j] = map[j][index + i];
-				map[j][index + i] = 0;
-			}
-		}
-
-		// 첫번째 접기
-		// 앞에 반절을 행을 증가시켜 역순으로 옮기기
-		for (int i = 0; i < N / 2; i++)
-		{
-			map[1][N - 1 - i] = map[0][i];
-			map[0][i] = 0;
-		}
-
-
-		// 두번째 접기
-		// 뒤에 반절부터 다시 층마다 역순으로 옮기기
-		// 가장 낮은 층이 가장 높은 층이 됨
-		for (int i = 0; i < 2; i++)
-		{
-			for (int j = 0; j < N / 4; j++)
-			{
-				map[3 - i][N - 1 - j] = map[i][j + N / 2];
-				map[i][j + N / 2] = 0;
-			}
-		}
-
-		bfs(4, N - N / 4 - 1);
-
-		// 펼치기
-		for (int i = 0; i < N / 4; i++) // 열
-		{
-			for (int j = 0; j < 4; j++) // 행
-			{
-				map[0][i * 4 + j] = map[j][N - N / 4 + i];
-				map[j][N - N / 4 + i] = 0;
-			}
-		}
+		stretching(N - N / 4, 4);
+		//printMap();
+		answer++;
 	}
-
 	cout << answer << "\n";
-
-	// (0, 0), (1, 0) -> (1, 0), (1, 1)
-
-	// j -> row = j, i -> col = N - j - 1  [-90]
-	// row = N - j - 1, col = i             [90]
-	// (0, 1), (1, 1) -> (1, 2) (1, 3)
-	// (0, 2), (0, 3), (1, 2), (1, 3) -> 
-
-
-	// 물고기 수의 차이가 K이하이면 종료
-	//if (maxNum - minNum >= K)
-	//	cout << answer << "\n";
-
 }
